@@ -1,11 +1,11 @@
 {
-    "name": "sps_live",
-    "short_name": "sps_live",
+    "name": "SPS Livecast",
+    "short_name": "SyCast",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "SPS STUDIO Live - Audio streaming, broadcasting, podcasts and community engagement application.",
+    "description": "SPS LiveCast - Audio streaming, broadcasting, podcasts and community engagement application.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

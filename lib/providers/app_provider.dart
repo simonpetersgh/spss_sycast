@@ -3,28 +3,43 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import '../services/audio_service.dart';
+import '../services/podcast_service.dart';
 import '../services/supabase_service.dart';
 
 enum StreamStatus { checking, available, offline }
 
-class AppProvider extends ChangeNotifier {
-  final AudioService audio = AudioService();
-  final SupabaseService _supabase = SupabaseService();
+enum PodcastStatus { loading, loaded, error }
 
-  StreamStatus _streamStatus = StreamStatus.checking;
-  int _listeners = 0;
-  // final String _currentStreamTitle = "SPS LiveCast | SyCast"; // Default title
-  String _streamTitle = "SPS Live Cast"; // Default title
+class AppProvider extends ChangeNotifier {
+  // NEEDED SERVICES INSTANCES
+  final SupabaseService _supabase = SupabaseService();
+  final AudioService audio = AudioService();
+  final PodcastService _podcastService = PodcastService();
 
   // URLs for Icecast PC (Exposed via Cloudflare Tunnel)
   final String streamUrl = "https://livestream.thesps.online/stream";
   final String statusUrl = "https://livestream.thesps.online/status-json.xsl";
 
+  // Stream Status
+  StreamStatus _streamStatus = StreamStatus.checking;
   StreamStatus get streamStatus => _streamStatus;
+
+  // Listener Count & Stream Title
+  int _listeners = 0;
   int get listeners => _listeners;
+  String _streamTitle = "SPS LiveCast"; // Default title
   String get streamTitle => _streamTitle;
 
+  // PODCASTS STATES
+  PodcastStatus _podcastStatus = PodcastStatus.loading;
+  List<PodcastEpisode> _episodes = [];
+
+  PodcastStatus get podcastStatus => _podcastStatus;
+  List<PodcastEpisode> get episodes => _episodes;
+
+  // constructor
   AppProvider() {
     _init();
 
@@ -45,6 +60,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> _init() async {
     await _supabase.ensureAuth();
     await checkStreamAvailability();
+    fetchPodcasts();
   }
 
   // 2. STREAM STATUS HELPERS
@@ -115,6 +131,14 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // REFRESH STREAM STATUS
+  Future<void> refreshStreamStatus() async {
+    _streamStatus = StreamStatus.checking; // Force UI into loading mode
+    notifyListeners();
+    // Re-check availability
+    await checkStreamAvailability(); // Reuse your existing logic to check state
+  }
+
   void togglePlay() async {
     if (audio.player.playing) {
       // For live streams, pause often works better than stop
@@ -134,6 +158,40 @@ class AppProvider extends ChangeNotifier {
       }
     }
 
+    notifyListeners();
+  }
+
+  // FETCH PODCASTS METHOD
+  Future<void> fetchPodcasts() async {
+    _podcastStatus = PodcastStatus.loading;
+    notifyListeners();
+
+    try {
+      _episodes = await _podcastService.fetchEpisodes();
+      _podcastStatus =
+          _episodes.isEmpty ? PodcastStatus.loaded : PodcastStatus.loaded;
+    } catch (e) {
+      _podcastStatus = PodcastStatus.error;
+    }
+    notifyListeners();
+  }
+
+  // LOGIC TO SWITCH FROM LIVE TO PODCAST
+  void playPodcast(PodcastEpisode ep) async {
+    // 1. Stop current playback
+    await audio.player.stop();
+    // 2. Load the podcast audio URL
+    await audio.player.setUrl(
+      ep.audioUrl,
+      tag: MediaItem(
+        id: ep.audioUrl,
+        title: ep.title,
+        album: "LiveCast Podcast",
+        artUri: Uri.parse(ep.imageUrl),
+      ),
+    );
+    // 3. Play
+    audio.player.play();
     notifyListeners();
   }
 

@@ -1,6 +1,5 @@
 // THIRD PARTY PODCAST SERVICE
 import 'package:http/http.dart' as http;
-import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
 // import 'package:webfeed_revived/webfeed_revived.dart';
@@ -14,7 +13,6 @@ import 'package:xml/xml.dart';
 //     return RssFeed.parse(response.body);
 //   }
 // }
-
 
 class PodcastEpisode {
   final String title;
@@ -33,7 +31,8 @@ class PodcastEpisode {
 }
 
 class PodcastService {
-  final String rssUrl = "https://media.rss.com/spss-studio-and-lifestyle/feed.xml"; // e.g., Spotify/Buzzsprout RSS
+  final String rssUrl =
+      "https://media.rss.com/spss-studio-and-lifestyle/feed.xml"; // e.g., Spotify/Buzzsprout RSS
 
   Future<List<PodcastEpisode>> fetchEpisodes() async {
     final response = await http.get(Uri.parse(rssUrl));
@@ -46,8 +45,11 @@ class PodcastService {
           title: node.findElements('title').first.innerText,
           description: node.findElements('description').first.innerText,
           pubDate: node.findElements('pubDate').first.innerText,
-          audioUrl: node.findElements('enclosure').first.getAttribute('url') ?? '',
-          imageUrl: node.findElements('itunes:image').first.getAttribute('href') ?? '',
+          audioUrl:
+              node.findElements('enclosure').first.getAttribute('url') ?? '',
+          imageUrl:
+              node.findElements('itunes:image').first.getAttribute('href') ??
+              '',
         );
       }).toList();
     }

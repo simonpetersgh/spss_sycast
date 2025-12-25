@@ -41,7 +41,7 @@ class _CommentSectionState extends State<CommentSection> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          // height: 450, // Slightly taller to accommodate input
+          height: 400, // Slightly taller to accommodate input
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withOpacity(
@@ -115,7 +115,7 @@ class _CommentSectionState extends State<CommentSection> {
                 Icon(Icons.circle, size: 8, color: primaryMint),
                 const SizedBox(width: 6),
                 Text(
-                  "Live Chat",
+                  "Live Comments (Last 1 Hour)",
                   style: TextStyle(
                     color: primaryMint,
                     fontSize: 10,
@@ -131,11 +131,6 @@ class _CommentSectionState extends State<CommentSection> {
             Icons.people_alt_outlined,
             size: 14,
             color: Colors.white54,
-          ),
-          const SizedBox(width: 4),
-          const Text(
-            "1.2k",
-            style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),

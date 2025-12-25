@@ -63,7 +63,6 @@ import '../../services/podcast_service.dart';
 //   }
 // }
 
-
 class PodcastListView extends StatelessWidget {
   const PodcastListView({super.key});
 
@@ -73,16 +72,30 @@ class PodcastListView extends StatelessWidget {
       future: PodcastService().fetchEpisodes(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
+          return const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
         if (snapshot.hasError || !snapshot.hasData) {
-          return const SliverToBoxAdapter(child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: Text("Error loading podcasts")),
-          ));
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    Text(
+                      "Error loading podcasts. Check internet connection and try again.",
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(onPressed: () {}, child: Text("Reload")),
+                  ],
+                ),
+              ),
+            ),
+          );
         }
 
-         if (snapshot.data!.isEmpty) {
+        if (snapshot.data!.isEmpty) {
           return SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.all(40),
@@ -90,7 +103,10 @@ class PodcastListView extends StatelessWidget {
                 children: [
                   Icon(Icons.library_music, size: 40, color: Colors.white12),
                   SizedBox(height: 10),
-                  Text("No podcasts available right now", style: TextStyle(color: Colors.white30)),
+                  Text(
+                    "No podcasts available for this channel.",
+                    style: TextStyle(color: Colors.white30),
+                  ),
                 ],
               ),
             ),
@@ -99,21 +115,22 @@ class PodcastListView extends StatelessWidget {
 
         final episodes = snapshot.data!;
         return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final ep = episodes[index];
-              return ListTile(
-                leading: Image.network(ep.imageUrl, width: 50, errorBuilder: (c, e, s) => const Icon(Icons.mic)),
-                title: Text(ep.title),
-                subtitle: Text(ep.pubDate, style: const TextStyle(fontSize: 11)),
-                trailing: const Icon(Icons.play_arrow),
-                onTap: () {
-                  // Logic to switch AudioService from Live Stream to this URL
-                },
-              );
-            },
-            childCount: episodes.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final ep = episodes[index];
+            return ListTile(
+              leading: Image.network(
+                ep.imageUrl,
+                width: 50,
+                errorBuilder: (c, e, s) => const Icon(Icons.mic),
+              ),
+              title: Text(ep.title),
+              subtitle: Text(ep.pubDate, style: const TextStyle(fontSize: 11)),
+              trailing: const Icon(Icons.play_arrow),
+              onTap: () {
+                // Logic to switch AudioService from Live Stream to this URL
+              },
+            );
+          }, childCount: episodes.length),
         );
       },
     );
