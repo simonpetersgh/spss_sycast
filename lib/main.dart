@@ -7,17 +7,14 @@ import 'providers/app_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await Supabase.initialize(
     url: 'https://kyphaztggqrlfmciezog.supabase.co',
     anonKey: 'sb_publishable_-bhzC-NOnXMXaZeXQMr5Qg_33GNlFWI',
   );
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppProvider(),
-      child: const MyApp(),
-    ),
+    ChangeNotifierProvider(create: (_) => AppProvider(), child: const MyApp()),
   );
 }
 
@@ -33,4 +30,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

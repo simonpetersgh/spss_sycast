@@ -1,124 +1,143 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-
-import '../services/supabase_service.dart';
-import '../services/audio_service.dart';
-
-import 'dart:async';
-import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import '../services/audio_service.dart';
 import '../services/supabase_service.dart';
-import '../services/podcast_service.dart';
 
-enum StreamStatus { checking, online, offline }
+enum StreamStatus { checking, available, offline }
 
 class AppProvider extends ChangeNotifier {
   final AudioService audio = AudioService();
   final SupabaseService _supabase = SupabaseService();
-  final PodcastService _podcast = PodcastService();
 
-  StreamStatus streamStatus = StreamStatus.checking;
-  bool hasPodcasts = true;
-  int listeners = 0;
-  String currentStreamTitle = "SPSS Studio";
+  StreamStatus _streamStatus = StreamStatus.checking;
+  int _listeners = 0;
+  // final String _currentStreamTitle = "SPS LiveCast | SyCast"; // Default title
+  String _streamTitle = "SPS Live Cast"; // Default title
+
+  // URLs for Icecast PC (Exposed via Cloudflare Tunnel)
+  final String streamUrl = "https://livestream.thesps.online/stream";
+  final String statusUrl = "https://livestream.thesps.online/status-json.xsl";
+
+  StreamStatus get streamStatus => _streamStatus;
+  int get listeners => _listeners;
+  String get streamTitle => _streamTitle;
 
   AppProvider() {
-    _supabase.ensureAuth();
-    checkStreamAvailability();
-    // Poll every 60 seconds to see if the stream comes back online
+    _init();
+
+    // LISTEN TO COMBINED PLAYER STATE
+    audio.player.processingStateStream.listen((state) {
+      // Logic: Only show 'Loading' if we are in the absolute initial loading phase
+      // or if the player is idling but trying to load.
+      notifyListeners();
+    });
+
+    // Poll Icecast every 10 seconds for listener counts
     Timer.periodic(
-      const Duration(seconds: 60),
-      (_) => checkStreamAvailability(),
+      const Duration(seconds: 10),
+      (timer) => checkStreamAvailability(),
     );
   }
 
-  // --- Intelligence: Stream Check ---
-  Future<void> checkStreamAvailability() async {
-    const streamUrl =
-        "https://livestream.thesps.online/stream"; // The direct audio link
-    try {
-      // We do a HEAD request to check if the URL is reachable without downloading audio
-      final response = await http
-          .head(Uri.parse(streamUrl))
-          .timeout(const Duration(seconds: 5));
+  Future<void> _init() async {
+    await _supabase.ensureAuth();
+    await checkStreamAvailability();
+  }
 
+  // 2. STREAM STATUS HELPERS
+  // Helper to check if the stream is currently "working" on something
+  // like loading or buffering; will be used to show loading indicators in UI
+  bool get isInitialLoading {
+    final state = audio.player.processingState;
+    // We only show the spinner if the player is strictly 'loading'.
+    // We ignore 'buffering' here because Icecast often stays in buffering
+    // for a few seconds even after audio starts.
+    return state == ProcessingState.loading;
+  }
+
+  bool get isActuallyPlaying {
+    // If the user has pressed play AND the player has moved past the loading stage
+    return audio.player.playing &&
+        (audio.player.processingState == ProcessingState.ready ||
+            audio.player.processingState == ProcessingState.buffering);
+  }
+
+  Future<void> checkStreamAvailability() async {
+    try {
+      // Fetch Icecast stream status
+      final response = await http
+          .get(Uri.parse(statusUrl))
+          .timeout(const Duration(seconds: 5));
+      // handle response
       if (response.statusCode == 200) {
-        streamStatus = StreamStatus.online;
-        if (!audio.player.playing) {
-          await audio.player.play(); // Pre-load if online
+        final data = json.decode(response.body);
+        final icestats = data['icestats'];
+
+        // Icecast JSON parsing (structure depends on your Icecast version)
+        // Usually: icestats -> source
+        // Check if there are any active sources
+        if (icestats != null && icestats.containsKey('source')) {
+          _streamStatus = StreamStatus.available;
+          var source = icestats['source'];
+
+          // Handle source as either a List (multiple mounts) or Map (single mount)
+          // Icecast returns a List if multiple mounts are active, or a Map if only one.
+          Map<String, dynamic> activeSource;
+          if (source is List && source.isNotEmpty) {
+            activeSource = source[0];
+          } else {
+            activeSource = source;
+          }
+          // OR SHORTCUT:
+          // Map<String, dynamic> activeSource = (source is List) ? source[0] : source;
+
+          // LISTENERS
+          _listeners = activeSource['listeners'] ?? 0;
+
+          // STREAM TITLE
+          // EXTRACT TITLE: Try server_name first, then genre, then fallback
+          _streamTitle =
+              activeSource['server_name'] ??
+              activeSource['genre'] ??
+              "SyCast Stream";
+        } else {
+          _streamStatus = StreamStatus.offline;
         }
       } else {
-        streamStatus = StreamStatus.offline;
+        _streamStatus = StreamStatus.offline;
       }
     } catch (e) {
-      streamStatus = StreamStatus.offline;
+      _streamStatus = StreamStatus.offline;
     }
     notifyListeners();
   }
 
-  void togglePlay() {
-    if (streamStatus == StreamStatus.online) {
-      audio.player.playing ? audio.player.pause() : audio.player.play();
+  void togglePlay() async {
+    if (audio.player.playing) {
+      // For live streams, pause often works better than stop
+      // await audio.player.stop();
+      await audio.player.pause();
+    } else {
+      // handle the play state
+      try {
+        // Only set source if it's not already set to avoid re-loading from scratch
+        if (audio.player.audioSource == null) {
+          await audio.initStream(streamUrl);
+        }
+        audio.player
+            .play(); // Don't 'await' play, let the streams handle the state
+      } catch (e) {
+        debugPrint("Error: $e");
+      }
     }
+
+    notifyListeners();
   }
 
-  // Helper for UI to check if podcasts exist
-  Future<void> updatePodcastStatus(bool empty) async {
-    if (hasPodcasts != !empty) {
-      hasPodcasts = !empty;
-      notifyListeners();
-    }
+  Future<void> sendComment(String content, String username) async {
+    await _supabase.postComment(content, username);
   }
-
-  Future<void> sendComment(String text, String name) async {
-    await _supabase.postComment(text, name);
-  }
-
-  Stream<List<Map<String, dynamic>>> get commentsStream =>
-      _supabase.getCommentsStream();
 }
-
-// class AppProvider extends ChangeNotifier {
-//   final AudioService audio = AudioService();
-//   final SupabaseService _supabase = SupabaseService();
-
-//   String currentStreamTitle = "SPS Studio LiveStream";
-//   bool isPlaying = false;
-//   int listeners = 0;
-
-//   AppProvider() {
-//     _supabase.ensureAuth();
-//     _initAudioListeners();
-//   }
-
-//   void _initAudioListeners() {
-//     audio.player.playingStream.listen((playing) {
-//       isPlaying = playing;
-//       notifyListeners();
-//     });
-
-//     audio.player.icyMetadataStream.listen((meta) {
-//       if (meta?.info?.title != null) {
-//         currentStreamTitle = meta!.info!.title!;
-//         notifyListeners();
-//       }
-//     });
-//   }
-
-//   void togglePlay() {
-//     if (isPlaying) {
-//       audio.player.pause();
-//     } else {
-//       audio.player.play();
-//     }
-//   }
-
-//   Future<void> sendComment(String text, String name) async {
-//     await _supabase.postComment(text, name);
-//   }
-
-//   // Getter for the comments stream to use in UI
-//   Stream<List<Map<String, dynamic>>> get commentsStream =>
-//       _supabase.getCommentsStream();
-// }
