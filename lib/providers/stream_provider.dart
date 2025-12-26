@@ -27,8 +27,8 @@ class StreamProvider extends ChangeNotifier {
   }
 
   void _init() {
-    _audioService.initStream("https://livestream.thesps.online/stream");
-    
+    _audioService.initLiveStream("https://livestream.thesps.online/stream");
+
     // Listen for ICY metadata changes (Stream Title)
     _audioService.player.icyMetadataStream.listen((metadata) {
       if (metadata != null && metadata.info != null) {
@@ -54,7 +54,9 @@ class StreamProvider extends ChangeNotifier {
   // Poll the Supabase Edge Function every 30 seconds for listener counts
   void _startStatsPolling() async {
     Timer.periodic(Duration(seconds: 30), (timer) async {
-      final response = await http.get(Uri.parse('YOUR_SUPABASE_EDGE_FUNCTION_URL'));
+      final response = await http.get(
+        Uri.parse('YOUR_SUPABASE_EDGE_FUNCTION_URL'),
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _listenerCount = data['listeners'];

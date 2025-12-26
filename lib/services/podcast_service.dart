@@ -18,6 +18,7 @@ class PodcastEpisode {
   final String title;
   final String description;
   final String pubDate;
+  final String duration;
   final String audioUrl;
   final String imageUrl;
 
@@ -25,6 +26,7 @@ class PodcastEpisode {
     required this.title,
     required this.description,
     required this.pubDate,
+    required this.duration,
     required this.audioUrl,
     required this.imageUrl,
   });
@@ -41,10 +43,17 @@ class PodcastService {
       final items = document.findAllElements('item');
 
       return items.map((node) {
+        // Handle missing itunes:duration gracefully
+        final duration =
+            node.findElements('itunes:duration').isEmpty
+                ? ''
+                : node.findElements('itunes:duration').first.innerText;
+
         return PodcastEpisode(
           title: node.findElements('title').first.innerText,
           description: node.findElements('description').first.innerText,
           pubDate: node.findElements('pubDate').first.innerText,
+          duration: duration,
           audioUrl:
               node.findElements('enclosure').first.getAttribute('url') ?? '',
           imageUrl:

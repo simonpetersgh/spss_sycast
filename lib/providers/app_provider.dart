@@ -12,11 +12,18 @@ enum StreamStatus { checking, available, offline }
 
 enum PodcastStatus { loading, loaded, error }
 
+enum ActiveAudioType { none, livestream, podcast }
+
 class AppProvider extends ChangeNotifier {
   // NEEDED SERVICES INSTANCES
   final SupabaseService _supabase = SupabaseService();
   final AudioService audio = AudioService();
   final PodcastService _podcastService = PodcastService();
+
+  // STREAMING AUDIO STATES
+  // NEW: Track what is actually playing
+  ActiveAudioType _activeType = ActiveAudioType.none;
+  ActiveAudioType get activeType => _activeType;
 
   // URLs for Icecast PC (Exposed via Cloudflare Tunnel)
   final String streamUrl = "https://livestream.thesps.online/stream";
@@ -39,6 +46,8 @@ class AppProvider extends ChangeNotifier {
   PodcastStatus get podcastStatus => _podcastStatus;
   List<PodcastEpisode> get episodes => _episodes;
 
+  String? _activeEpisodeUrl;
+
   // constructor
   AppProvider() {
     _init();
@@ -47,6 +56,16 @@ class AppProvider extends ChangeNotifier {
     audio.player.processingStateStream.listen((state) {
       // Logic: Only show 'Loading' if we are in the absolute initial loading phase
       // or if the player is idling but trying to load.
+      notifyListeners();
+    });
+
+    // LISTEN TO PLAYER STATE CHANGES
+    audio.player.playerStateStream.listen((state) {
+      // This ensures that when the song finishes naturally,
+      // the play/pause icons and visualizers reset immediately.
+      if (state.processingState == ProcessingState.completed) {
+        audio.player.stop(); // This resets the seek position to 0:00
+      }
       notifyListeners();
     });
 
@@ -132,29 +151,44 @@ class AppProvider extends ChangeNotifier {
   }
 
   // REFRESH STREAM STATUS
-  Future<void> refreshStreamStatus() async {
+  Future<void> refreshStream() async {
     _streamStatus = StreamStatus.checking; // Force UI into loading mode
-    notifyListeners();
+    notifyListeners(); // This makes the Player Card show the loading state immediately
     // Re-check availability
     await checkStreamAvailability(); // Reuse your existing logic to check state
   }
 
-  void togglePlay() async {
+  // Only returns true if the player is playing AND it's the live stream
+  bool get isLiveStreamPlaying {
+    return _activeType == ActiveAudioType.livestream &&
+        audio.player.playing &&
+        audio.player.processingState != ProcessingState.loading;
+  }
+
+  // LIVE STREAM TOGGLE PLAY/PAUSE
+  void toggleStreamPlay() async {
+    // 1. If we were playing a podcast, stop it completely first kill it
+    if (_activeType == ActiveAudioType.podcast) {
+      await audio.player.stop();
+      _activeEpisodeUrl = null;
+    }
+
+    // 2. Set the new type
+    _activeType = ActiveAudioType.livestream;
+
     if (audio.player.playing) {
-      // For live streams, pause often works better than stop
-      // await audio.player.stop();
       await audio.player.pause();
     } else {
       // handle the play state
       try {
-        // Only set source if it's not already set to avoid re-loading from scratch
-        if (audio.player.audioSource == null) {
-          await audio.initStream(streamUrl);
-        }
-        audio.player
-            .play(); // Don't 'await' play, let the streams handle the state
+        // 3. FORCE RE-INITIALIZATION
+        // We MUST re-init the live stream URL if it wasnt paused
+        // and then start playing
+        await audio.initLiveStream(streamUrl);
+        // 4. Await play to ensure the handshake is solid
+        await audio.player.play();
       } catch (e) {
-        debugPrint("Error: $e");
+        debugPrint("Stream Error: $e");
       }
     }
 
@@ -165,6 +199,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> fetchPodcasts() async {
     _podcastStatus = PodcastStatus.loading;
     notifyListeners();
+    // This makes the PodcastListView show the loading circle immediately
 
     try {
       _episodes = await _podcastService.fetchEpisodes();
@@ -176,25 +211,105 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // LOGIC TO SWITCH FROM LIVE TO PODCAST
-  void playPodcast(PodcastEpisode ep) async {
-    // 1. Stop current playback
-    await audio.player.stop();
-    // 2. Load the podcast audio URL
-    await audio.player.setUrl(
-      ep.audioUrl,
-      tag: MediaItem(
-        id: ep.audioUrl,
-        title: ep.title,
-        album: "LiveCast Podcast",
-        artUri: Uri.parse(ep.imageUrl),
-      ),
-    );
-    // 3. Play
-    audio.player.play();
+  //IS EPISODE ACTIVE HELPER BOOL
+  // Only returns true if the player is playing AND it's this specific podcast
+  bool isEpisodeActive(String url) {
+    return _activeType == ActiveAudioType.podcast &&
+        _activeEpisodeUrl == url &&
+        audio.player.playing &&
+        audio.player.processingState != ProcessingState.completed;
+  }
+
+  // 1. DYNAMIC PODCAST TOGGLE (Handles Play & Pause)
+  // Updated the togglePlayPause method for better play/pause/resume logic
+  // Handles the 3 states: Resume (same URL, not playing),
+  // Pause (same URL, playing), and New Load (different URL).
+  void togglePlayPausePodcast(PodcastEpisode ep) async {
+    // If we were playing the Live Stream, stop it first
+    if (_activeType == ActiveAudioType.livestream) {
+      await audio.player.stop();
+    }
+
+    _activeType = ActiveAudioType.podcast;
+
+    if (_activeEpisodeUrl == ep.audioUrl) {
+      // Resume/Pause existing podcast
+      // If it's the same episode, just toggle play/pause
+      if (audio.player.playing) {
+        await audio.player.pause();
+      } else {
+        audio.player.play();
+      }
+    } else {
+      // Load a NEW podcast
+      // If it's a new episode, stop previous and load new
+      _activeEpisodeUrl = ep.audioUrl;
+      await audio.player.stop(); // Clear old stream
+
+      // Use await on setUrl to ensure the podcast metadata is loaded
+      // BEFORE the play command is issued.
+      await audio.player.setUrl(
+        ep.audioUrl,
+        tag: MediaItem(
+          id: ep.audioUrl,
+          title: ep.title,
+          album: "LiveCast Podcast",
+          artUri: Uri.parse(ep.imageUrl),
+        ),
+      );
+      await audio.player.play(); // play
+    }
     notifyListeners();
   }
 
+  // 2. STOP METHOD
+  void stopPostcastAudio() async {
+    await audio.player.stop();
+    // Sets playing to false and position to 0
+    _activeEpisodeUrl = null;
+    notifyListeners();
+  }
+
+  // 3. SEEK METHOD (Ensures state updates)
+  void seek(Duration position) {
+    audio.player.seek(position);
+    notifyListeners();
+  }
+
+  // // PLAY PODCAST
+  // // LOGIC TO SWITCH FROM LIVE TO PODCAST
+  // void playPodcast(PodcastEpisode ep) async {
+  //   // Track which one is playing
+  //   _activeEpisodeUrl = ep.audioUrl;
+
+  //   // 1. Stop or Pause Episode (if playing)
+  //   // Toggle play/pause if the same episode is tapped
+  //   if (audio.player.playing &&
+  //       audio.player.audioSource?.toString().contains(ep.audioUrl) == true) {
+  //     await audio.player.pause();
+  //   } else {
+  //     // 2. Play the podcast audio (Load if different)
+  //     // If a different episode is selected while one is playing, stop it first
+  //     await audio.player.stop();
+  //     // await audio.player.setUrl(ep.audioUrl);
+  //     // audio.player.play();
+  //     // 3. Set Episode & Play
+  //     await audio.player.setUrl(
+  //       ep.audioUrl,
+  //       tag: MediaItem(
+  //         id: ep.audioUrl,
+  //         title: ep.title,
+  //         album: "LiveCast Podcast",
+  //         artUri: Uri.parse(ep.imageUrl),
+  //       ),
+  //     );
+  //     audio.player.play(); // PLAY: Don't await play to let streams handle state
+  //   }
+
+  //   notifyListeners();
+  // }
+
+  // SEND COMMENT TO SUPABASE
   Future<void> sendComment(String content, String username) async {
     await _supabase.postComment(content, username);
   }

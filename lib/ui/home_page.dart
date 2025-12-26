@@ -269,7 +269,7 @@ class _HomePageState extends State<HomePage> {
             // ACTUAL REFRESH STREAM BUTTON
             ElevatedButton.icon(
               // Calls the refresh stream method
-              onPressed: () => prov.refreshStreamStatus(),
+              onPressed: () => prov.refreshStream(),
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text("Refresh Stream"),
               style: ElevatedButton.styleFrom(
@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> {
     // Using precise state helpers
     // final isPlaying = prov.audio.player.playing;
     final bool isLoading = prov.isInitialLoading;
-    final bool isPlaying = prov.isActuallyPlaying;
+    final bool isPlaying = prov.isLiveStreamPlaying;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -362,7 +362,8 @@ class _HomePageState extends State<HomePage> {
             onTap:
                 isLoading
                     ? null
-                    : () => prov.togglePlay(), // Disable tap while loading
+                    : () =>
+                        prov.toggleStreamPlay(), // Disable tap while loading
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.all(8),
