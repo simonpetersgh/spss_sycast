@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mini_music_visualizer/mini_music_visualizer.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../providers/app_provider.dart';
 import '../../services/podcast_service.dart';
 import 'formatter_helpers.dart';

@@ -1,8 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:mini_music_visualizer/mini_music_visualizer.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb; // To check if running on web
+
 import '../../providers/app_provider.dart';
+import 'widgets/download_referrer.dart';
 import 'widgets/comment_section.dart';
 import 'widgets/developer_footer.dart';
 import 'widgets/podcast_list_view.dart';
@@ -161,7 +166,13 @@ class _HomePageState extends State<HomePage> {
 
                 if (!_showComments) const PodcastListView(),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                const SliverToBoxAdapter(child: SizedBox(height: 50)),
+
+                // ANDROID APK DOWNLOAD REFERRER CARD
+                // !! Only show if not running on web !!
+                // Has been update for all platforms widget
+                // if (!kIsWeb)
+                AppDownloadReferrerCard(),
 
                 // 6. DEVELOPER FOOTER
                 const SliverToBoxAdapter(child: MyDeveloperFooter()),

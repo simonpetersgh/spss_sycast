@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -50,6 +51,7 @@ class AppProvider extends ChangeNotifier {
 
   // constructor
   AppProvider() {
+    // 1. Do the heavy lifting while the splash is still showing
     _init();
 
     // LISTEN TO COMBINED PLAYER STATE
@@ -79,7 +81,11 @@ class AppProvider extends ChangeNotifier {
   Future<void> _init() async {
     await _supabase.ensureAuth();
     await checkStreamAvailability();
-    fetchPodcasts();
+
+    fetchPodcasts();  // Fetch the initial batch of podcasts on startup
+
+    // 3. NOW remove the splash screen
+  FlutterNativeSplash.remove(); 
   }
 
   // 2. STREAM STATUS HELPERS

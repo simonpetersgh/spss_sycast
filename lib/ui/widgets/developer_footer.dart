@@ -10,7 +10,7 @@ class MyDeveloperFooter extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         16,
-        40,
+        16,
         16,
         60,
       ), // Extra bottom padding for safe area
@@ -30,17 +30,9 @@ class MyDeveloperFooter extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          // const SizedBox(height: 24),
 
-          // DEVELOPED BY TEXT
-          Text(
-            "Developed by",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withOpacity(0.4),
-            ),
-          ),
-
+          // COPYRIGHT AND DEVELOPER SECTION
           const SizedBox(height: 8),
 
           // Logo with a glowing border
@@ -70,37 +62,57 @@ class MyDeveloperFooter extends StatelessWidget {
           // ),
 
           // Developer Name & Studio
-          Row(
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                "SPS STUDIO",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: theme.colorScheme.primary, // Mint color
-                  letterSpacing: 2,
+              // Brief about app
+              Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  "All Rights Reserved. SPS LiveCast is an on-demand premium audio streaming platform.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.4),
+                  ),
                 ),
               ),
-              const SizedBox(width: 4),
-              const Text(
-                "(Simon Peters)",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
+              const SizedBox(height: 8),
+              // copyrigt
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "© 2025 SPS STUDIO",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: theme.colorScheme.primary, // Mint color
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    "(Simon Peters)",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Tagline
           Text(
             "Crafting digital experiences through web and mobile apps.",
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: Colors.white.withOpacity(0.4),
               fontStyle: FontStyle.italic,
             ),
