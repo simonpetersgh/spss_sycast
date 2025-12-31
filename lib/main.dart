@@ -6,12 +6,23 @@ import 'ui/download_page.dart';
 import 'ui/home_page.dart';
 import 'utils/app_theme.dart';
 import 'providers/app_provider.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
-void main() async {
+Future<void> main() async {
   // WidgetsFlutterBinding.ensureInitialized();
 
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Background Audio Service
+  await JustAudioBackground.init(
+    androidNotificationChannelId:
+        'com.thesps.livecast.channel.audio', // UNIQUE TO YOUR APP IDENTIFIER AND NOT BE CHANGED
+    androidNotificationChannelName: 'Livecast Audio Playback',
+    androidNotificationIcon: 'mipmap/launcher_icon',
+    androidNotificationOngoing: true,
+  );
+
+  // Initialize the splash screen
   // Keep the splash screen until your initialization logic (like Supabase/Auth) is done
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   // In your HomePage or whenever initialization is done:

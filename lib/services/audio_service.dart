@@ -13,17 +13,23 @@ class AudioService {
 
   AudioPlayer get player => _player;
 
-  Future<void> initLiveStream(String url) async {
+  Future<void> initLiveStream(String streamUrl, String streamTitle) async {
+    // Set the audio source to the live stream URL with metadata for notification
+    // 'tag' is used by just_audio_background to show notification
+    // Make sure to provide a unique ID and relevant info
+    // notification artUri (album art) should be a valid URL
+    String albumArtUrl = "https://firebasestorage.googleapis.com/v0/b/sesa-studio.firebasestorage.app/o/livecast%2Fstream-logo.png?alt=media&token=e18d50d1-bd20-47b3-b15b-5e0378cd064f";
     try {
       await _player.setAudioSource(
         AudioSource.uri(
-          Uri.parse(url),
+          Uri.parse(streamUrl),
+          // This 'tag' creates play notification
           tag: MediaItem(
-            id: 'sycast-livestream',
-            album: "LiveCast Stream",
-            title: "SPS LiveStream",
+            id: 'livecast-livestream',
+            title: streamTitle, // This shows as the current playing song title in notification
+            album: "LiveCast Livestream",
             artUri: Uri.parse(
-              "https://firebasestorage.googleapis.com/v0/b/sesa-studio.firebasestorage.app/o/livecast%2FSPS%20Developer%20Logo.png?alt=media&token=79bee5ca-a5fc-4bd6-9871-626943bacb56",
+              albumArtUrl
             ),
           ),
         ),

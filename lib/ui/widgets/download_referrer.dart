@@ -107,27 +107,27 @@ class AppDownloadReferrerCard extends StatelessWidget {
         child: Column(
           children: [
             // TOP SECTION: Internal Download (Focus for Web)
-            // if (kIsWeb)
-            _buildActionTile(
-              context,
-              title: "Get the Android App",
-              subtitle:
-                  "Download the SPS LiveCast APK for a native experience.",
-              icon: Icons.android_rounded,
-              iconColor: mint,
-              buttonText: "Go to Download",
-              onTap: () => Navigator.pushNamed(context, '/download'),
-              isPrimary: true,
-            ),
+            if (kIsWeb)
+              _buildActionTile(
+                context,
+                title: "Get the Android App",
+                subtitle:
+                    "Download the SPS LiveCast APK for a native experience.",
+                icon: Icons.android_rounded,
+                iconColor: mint,
+                buttonText: "Go to Download",
+                onTap: () => Navigator.pushNamed(context, '/download'),
+                isPrimary: true,
+              ),
 
             // Divider if on Web (to separate the two sections)
-            if (kIsWeb)
-              Divider(
-                height: 1,
-                color: Colors.white.withOpacity(0.05),
-                indent: 20,
-                endIndent: 20,
-              ),
+            // if (kIsWeb)
+            Divider(
+              height: 1,
+              color: Colors.white.withOpacity(0.05),
+              indent: 20,
+              endIndent: 20,
+            ),
 
             // BOTTOM SECTION: External Studio Portfolio (For All Platforms)
             _buildActionTile(
@@ -140,7 +140,7 @@ class AppDownloadReferrerCard extends StatelessWidget {
               buttonText: "Visit Portfolio",
               onTap:
                   () => launchUrl(
-                    Uri.parse("https://thesps.online/projects"),
+                    Uri.parse("https://thesps.online"),
                     mode: LaunchMode.externalApplication,
                   ),
               isPrimary: !kIsWeb, // Make this primary if we aren't on Web

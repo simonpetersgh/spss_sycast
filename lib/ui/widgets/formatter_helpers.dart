@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 // DURATION FORMATTER
 // Handle HH:MM:SS or MM:SS formats
 String formatDurationNumeric(dynamic raw) {
@@ -36,4 +38,15 @@ String formatTime(Duration duration) {
   }
   // Otherwise: 5:03 (No leading zero on minutes if less than 10)
   return "${duration.inMinutes.remainder(60)}:$twoDigitSeconds";
+}
+
+// DATE FORMATTER
+String formatDateTime(DateTime dateTime) {
+  // final DateFormat formatter = DateFormat('yyyy-MM-dd');
+  // ANOTHER FORMAT EXAMPLE:
+  // final DateFormat formatter = DateFormat('dd MMM yyyy, hh:mm a');
+  final DateFormat formatter = DateFormat('MMM dd, yyyy');
+  // ANOTHER FORMAT EXAMPLE:
+  // final DateFormat formatter = DateFormat.yMMMMd().add_jm();
+  return formatter.format(dateTime);
 }

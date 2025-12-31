@@ -12,7 +12,7 @@ import '../services/audio_service.dart';
 
 class StreamProvider extends ChangeNotifier {
   final AudioService _audioService = AudioService();
-  String _currentTitle = "SPS Studio Aircast";
+  String _currentTitle = "SPS Livestream";
   int _listenerCount = 0;
   bool _isPlaying = false;
 
@@ -27,7 +27,7 @@ class StreamProvider extends ChangeNotifier {
   }
 
   void _init() {
-    _audioService.initLiveStream("https://livestream.thesps.online/stream");
+    _audioService.initLiveStream("https://livestream.thesps.online/stream", "SPS Livestream");
 
     // Listen for ICY metadata changes (Stream Title)
     _audioService.player.icyMetadataStream.listen((metadata) {

@@ -35,6 +35,8 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Stack(
           children: [
+            // ---------------------------- MAIN SCROLLABLE CONTENT ---------------------------
+            // ---------------------------- MAIN SCROLLABLE CONTENT ---------------------------
             CustomScrollView(
               slivers: [
                 // ------------------------------------
@@ -86,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                               _buildStatusBadge(prov, primaryMint),
                               const SizedBox(height: 8),
                               Text(
-                                "SPS LiveCast | SyCast",
+                                "LiveCast | SyCast",
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -154,7 +156,7 @@ class _HomePageState extends State<HomePage> {
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
                       child: Text(
-                        "All Podcasts",
+                        "Studio Podcasts",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
@@ -176,12 +178,10 @@ class _HomePageState extends State<HomePage> {
 
                 // 6. DEVELOPER FOOTER
                 const SliverToBoxAdapter(child: MyDeveloperFooter()),
-
-                // const SliverToBoxAdapter(child: SizedBox(height: 50)),
               ],
             ),
 
-            // Optional: Floating Play Button at the bottom for quick access
+            // Floating Podcast Play and Control buttons at the bottom for quick access
           ],
         ),
       ),
@@ -267,13 +267,14 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             const Icon(
+              // Icons.sync_disabled_outlined,
               Icons.cloud_off_rounded,
               size: 48,
               color: Colors.white24,
             ),
             const SizedBox(height: 12),
             const Text(
-              "No active stream at the moment.",
+              "No live stream available at the moment.",
               style: TextStyle(color: Colors.white54),
             ),
             const SizedBox(height: 16),
@@ -444,7 +445,7 @@ class _HomePageState extends State<HomePage> {
     bool isActive = false,
   }) {
     final color =
-        isActive ? theme.colorScheme.secondary : theme.colorScheme.primary;
+        isActive ? theme.colorScheme.primary : theme.colorScheme.secondary;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -456,7 +457,7 @@ class _HomePageState extends State<HomePage> {
                     ? color.withOpacity(0.1)
                     : Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isActive ? color : Colors.white10),
+            border: Border.all(color: isActive ? color : Colors.white24),
           ),
           child: Column(
             children: [
@@ -486,4 +487,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  // end of class
 }

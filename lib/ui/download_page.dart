@@ -1,15 +1,28 @@
 // Android APK Download Page
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../providers/app_provider.dart';
+import 'widgets/formatter_helpers.dart';
 
 class DownloadPage extends StatelessWidget {
   const DownloadPage({super.key});
 
   // APK DOWNLOAD Link
-  final String apkUrl =
-      "https://firebasestorage.googleapis.com/.../app-release.apk";
+  // final String apkUrl =
+  //     "https://firebasestorage.googleapis.com/.../app-release.apk";
 
-  Future<void> _downloadApk() async {
+  void _downloadApk(BuildContext context) async {
+    final apkUrl =
+        Provider.of<AppProvider>(
+          context,
+          listen: false,
+        ).latestVersion?['apk_url'];
+    if (apkUrl == null) {
+      throw Exception('APK URL not available. Please try again later.');
+    }
+
     if (!await launchUrl(
       Uri.parse(apkUrl),
       mode: LaunchMode.externalApplication,
@@ -22,6 +35,20 @@ class DownloadPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mint = theme.colorScheme.primary;
+
+    // App Provider
+    final prov = context.watch<AppProvider>();
+    // Latest Version Info
+    final latestVersion = prov.latestVersion;
+    final latestVersionName = latestVersion?['version_name'];
+    final latestVersionDate =
+        latestVersion?['release_date'] != null
+            ? DateTime.tryParse(latestVersion!['release_date'])
+            : null;
+
+    // converting rlease date to formatted string
+    final formattedDate =
+        latestVersionDate != null ? formatDateTime(latestVersionDate) : 'N/A';
 
     return Scaffold(
       backgroundColor: const Color(0xFF181C27),
@@ -41,7 +68,7 @@ class DownloadPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     image: const DecorationImage(
-                      image: AssetImage("assets/images/livecast-logo.png"),
+                      image: AssetImage("assets/images/app-logo.png"),
                     ),
                   ),
                 ),
@@ -52,7 +79,7 @@ class DownloadPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Version 1.0.2 • Last updated: Dec 25, 2025",
+                  "Version: $latestVersionName • Release date: $formattedDate",
                   style: TextStyle(color: Colors.white38, fontSize: 14),
                 ),
 
@@ -63,7 +90,7 @@ class DownloadPage extends StatelessWidget {
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton.icon(
-                    onPressed: _downloadApk,
+                    onPressed: () async => _downloadApk(context),
                     icon: const Icon(Icons.android_rounded),
                     label: const Text(
                       "DOWNLOAD ANDROID APK",
@@ -103,9 +130,34 @@ class DownloadPage extends StatelessWidget {
                       "Installing via APK allows you to get the Android app and latest features directly from our platform before they hit the app stores.",
                 ),
 
-                // #################################
-                // #################################
                 const SizedBox(height: 16),
+
+                // -------- Apk Release Archive --------
+                Row(
+                  children: [
+                    Text("Find previous release APKs:"),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => _showDownloadArchive(context),
+                      child: const Text(
+                        "View Archive",
+                        style: TextStyle(decoration: TextDecoration.underline),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                //
+                // --- divider ---
+                Divider(color: Colors.white.withOpacity(0.1), thickness: 1),
+
+                // -------- Apk Release Archive & More Apps --------
+
+                // Apk Release Archive
+
+                // #################################
+                // #################################
+                const SizedBox(height: 12),
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -120,17 +172,19 @@ class DownloadPage extends StatelessWidget {
                   children: [
                     _buildOtherAppTile(
                       context,
-                      name: "SPS STUDIO",
-                      desc: "Explore custom software & web solutions.",
+                      name: "SPS Online", // portfolio website
+                      desc:
+                          "Deloping custom software & web solutions for digital transformation.",
                       icon: Icons.language_rounded,
                       url: "https://thesps.online",
                     ),
                     const SizedBox(height: 12),
                     _buildOtherAppTile(
                       context,
-                      name: "SPS Inventory", // Example app name
-                      desc: "Smart business management tools.",
-                      icon: Icons.inventory_2_outlined,
+                      name: "SME Cashbook", // business cashbook app
+                      desc:
+                          "Simplified accounting and cash management for small businesses.",
+                      icon: Icons.wallet,
                       url: "https://thesps.online",
                     ),
                   ],
@@ -252,6 +306,73 @@ class DownloadPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // -------------------------------
+  // --- helper widgets start here -
+  // -------------------------------
+  void _showDownloadArchive(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final history = context.watch<AppProvider>().apkReleaseHistory;
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7, // 70% of screen
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "APK Release Archive",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: history.length,
+                  itemBuilder: (context, index) {
+                    final ver = history[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        "Version ${ver['version_name']} - ${ver['release_date']}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        ver['release_notes'] ??
+                            "Big Fixes and Performance Improvements",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: TextButton(
+                        onPressed: () {
+                          // Launch APK URL && pop sheet
+                          final apkUrl = ver['apk_url'];
+                          if (apkUrl != null) {
+                            launchUrl(
+                              Uri.parse(apkUrl),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                          Navigator.pop(context);
+                        },
+                        child: const Text("Download"),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

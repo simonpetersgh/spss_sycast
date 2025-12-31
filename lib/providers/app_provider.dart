@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/audio_service.dart';
 import '../services/podcast_service.dart';
 import '../services/supabase_service.dart';
@@ -16,11 +17,14 @@ enum PodcastStatus { loading, loaded, error }
 enum ActiveAudioType { none, livestream, podcast }
 
 class AppProvider extends ChangeNotifier {
-  // NEEDED SERVICES INSTANCES
+  // ------- NEEDED SERVICES INSTANCES ------------
+  // ------- NEEDED SERVICES INSTANCES ------------
   final SupabaseService _supabase = SupabaseService();
   final AudioService audio = AudioService();
   final PodcastService _podcastService = PodcastService();
 
+  // ------- STATE VARIABLES ------------
+  // ------- STATE VARIABLES ------------
   // STREAMING AUDIO STATES
   // NEW: Track what is actually playing
   ActiveAudioType _activeType = ActiveAudioType.none;
@@ -37,7 +41,7 @@ class AppProvider extends ChangeNotifier {
   // Listener Count & Stream Title
   int _listeners = 0;
   int get listeners => _listeners;
-  String _streamTitle = "SPS LiveCast"; // Default title
+  String _streamTitle = "SPS LiveStream"; // Default title
   String get streamTitle => _streamTitle;
 
   // PODCASTS STATES
@@ -49,10 +53,16 @@ class AppProvider extends ChangeNotifier {
 
   String? _activeEpisodeUrl;
 
+  // APK RELEASE HISTORY
+  List<Map<String, dynamic>> apkReleaseHistory = [];
+  bool isUpdateAvailable = false;
+  Map<String, dynamic>? latestVersion;
+  String latestApkUrl = "";
+
   // constructor
   AppProvider() {
     // 1. Do the heavy lifting while the splash is still showing
-    _init();
+    _initApp();
 
     // LISTEN TO COMBINED PLAYER STATE
     audio.player.processingStateStream.listen((state) {
@@ -78,14 +88,40 @@ class AppProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> _init() async {
+  Future<void> _initApp() async {
     await _supabase.ensureAuth();
-    await checkStreamAvailability();
 
-    fetchPodcasts();  // Fetch the initial batch of podcasts on startup
+    try {
+      // 1. Fetch DB Data
+      // 1. Fetch Stream Config & Apk Release History Data via SB Service
+      // final streamConfig = await _supabase.fetchStreamConfig();
+      apkReleaseHistory = await _supabase.fetchApkReleaseHistory();
 
-    // 3. NOW remove the splash screen
-  FlutterNativeSplash.remove(); 
+      // GET NEEDED STREAM VALUES
+      //  _streamUrl = streamConfig['stream_url'];
+      // _streamTitle = streamConfig['stream_name'] ?? "SPS LiveCast";
+      // Apply fetched config
+      // 2. Intelligent Stream Check
+      await checkStreamAvailability();
+
+      // 3. Fetch Podcasts
+      fetchPodcasts(); // Fetch the initial batch of podcasts on startup
+
+      // xxxxx #. Check Updates xxxxxxxx
+      // #. Check for app updates using the first item in history (desc order)
+      // If available, set isUpdateAvailable to true
+      if (apkReleaseHistory.isNotEmpty) {
+        latestVersion = apkReleaseHistory.first;
+        // await _checkForUpdates(latestVersion!['version_code']);
+      }
+      // 3. NOW remove the splash screen
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Initialisation Error: $e");
+      _streamStatus = StreamStatus.offline;
+      notifyListeners();
+    }
+    FlutterNativeSplash.remove();
   }
 
   // 2. STREAM STATUS HELPERS
@@ -143,7 +179,8 @@ class AppProvider extends ChangeNotifier {
           _streamTitle =
               activeSource['server_name'] ??
               activeSource['genre'] ??
-              "SyCast Stream";
+              activeSource['stream_name'] ??
+              "SyCast Livestream";
         } else {
           _streamStatus = StreamStatus.offline;
         }
@@ -190,7 +227,7 @@ class AppProvider extends ChangeNotifier {
         // 3. FORCE RE-INITIALIZATION
         // We MUST re-init the live stream URL if it wasnt paused
         // and then start playing
-        await audio.initLiveStream(streamUrl);
+        await audio.initLiveStream(streamUrl, _streamTitle);
         // 4. Await play to ensure the handshake is solid
         await audio.player.play();
       } catch (e) {
@@ -319,4 +356,29 @@ class AppProvider extends ChangeNotifier {
   Future<void> sendComment(String content, String username) async {
     await _supabase.postComment(content, username);
   }
+
+  // CHECK FOR UPDATES [ To compare current running app version with latest APK ]
+  // Trigger version check and set isUpdateAvailable accordingly, for UI to react
+  // Future<void> _checkForUpdates(int remoteVersionCode) async {
+  //   PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  //   int localVersionCode = int.parse(packageInfo.buildNumber);
+
+  //   if (remoteVersionCode > localVersionCode) {
+  //     isUpdateAvailable = true;
+  //   }
+  // }
+
+  // DOWNLOAD APK METHOD
+  // Implement your APK download logic here
+  // to handle the download process and save the APK file to the device.
+
+  // Trigger download for a specific APK URL
+  Future<void> downloadApk(String downloadUrl) async {
+    final uri = Uri.parse(downloadUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  // ------- END OF APP PRIVIDER CLASS -------
 }

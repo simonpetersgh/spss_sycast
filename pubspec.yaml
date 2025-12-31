@@ -1,4 +1,4 @@
-name: sps_live
+name: livecast
 description: "SPS Studio Live - Audio streaming, broadcasting, podcasts and community engagement application."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -107,24 +107,24 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/images/app-logo.png"
   # For modern Android adaptive icons
-  adaptive_icon_background: "#181C27"
+  adaptive_icon_background: "#2e236c"
   adaptive_icon_foreground: "assets/images/app-logo.png"
   # For Web manifest
   web:
     generate: true
-    image_path: "assets/images/app-logo.png"
-    background_color: "#181C27"
-    theme_color: "#181C27"
+    image_path: "assets/images/app-logo-rounded.png"
+    background_color: "#2e236c"
+    theme_color: "#2e236c"
 
 flutter_native_splash:
-  color: "#181C27"
-  image: "assets/images/app-logo.png"
+  color: "#2e236c"
+  image: "assets/images/app-logo-rounded.png"
   
   # For Android 12+ support
   android_12:
-    color: "#181C27"
-    icon_background_color: "#181C27"
-    image: "assets/images/app-logo.png"
+    color: "#2e236c"
+    icon_background_color: "#2e236c"
+    image: "assets/images/app-logo-rounded.png"
 
   # Optional: Branding image at the bottom (like "SPS STUDIO")
   # branding: "assets/images/branding_text.png"

@@ -1,11 +1,11 @@
 {
     "name": "SPS Livecast",
-    "short_name": "SyCast",
+    "short_name": "LiveCast",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#181C27",
-    "theme_color": "#181C27",
-    "description": "SPS LiveCast - Audio streaming, broadcasting, podcasts and community engagement application.",
+    "background_color": "#2e236c",
+    "theme_color": "#2e236c",
+    "description": "LiveCast is an on‑demand audio streaming application designed for seamless listening of live broadcasts, online radio, podcasts, and other on‑demand shows. For live music, talk shows, or original podcasts, LiveCast brings high‑quality audio experiences to public listeners over the internet.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

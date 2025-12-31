@@ -1,4 +1,4 @@
-# sps_live (LiveStream)
+# livecast (LiveStream)
 
 SPS STUDIO Live - Audio streaming, broadcasting, podcasts and community engagement application.
 

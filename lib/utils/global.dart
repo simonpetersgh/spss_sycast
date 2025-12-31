@@ -10,7 +10,7 @@ const String gStreamUrl = 'https://example.com/stream/live.m3u8';
 const String gSupportEmail = '';
 
 // APK DOWNLOAD URL
-const String gApkDownloadUrl = 'https://example.com/download/sps_live.apk';
+const String gApkDownloadUrl = 'https://example.com/download/livecast.apk';
 
 
 // COLOR THEME
