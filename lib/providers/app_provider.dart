@@ -245,7 +245,8 @@ class AppProvider extends ChangeNotifier {
     // This makes the PodcastListView show the loading circle immediately
 
     try {
-      _episodes = await _podcastService.fetchEpisodes();
+      // Add a timeout to your Supabase/HTTP calls
+      _episodes = await _podcastService.fetchEpisodes().timeout(const Duration(seconds: 5));
       _podcastStatus =
           _episodes.isEmpty ? PodcastStatus.loaded : PodcastStatus.loaded;
     } catch (e) {
